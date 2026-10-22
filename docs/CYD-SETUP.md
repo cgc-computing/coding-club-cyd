@@ -477,16 +477,29 @@ If the verification sketch:
 
 then your CYD is ready for Coding Club projects.
 
-Possible next projects include:
+Three sketches in this repository are ready to run:
 
-- procedural generative landscapes
-- dice and game simulations
-- Wi-Fi visualization
-- sensor dashboards
-- touch-based games
-- clocks and timers
-- network tools
-- retro-style demos
+- **[generative_landscape](../sketches/generative_landscape/)** — a new
+  procedural mountain scene on every button press. Display only.
+- **[CYDSolarSystem](../CYDSolarSystem/)** — an animated orrery. Display only,
+  and a good introduction to flicker-free sprite rendering.
+- **[WiFiDetectiveDeluxe](../WiFiDetectiveDeluxe/)** — a Wi-Fi analyzer. This
+  is the one that uses the touchscreen, so start here if you want to verify
+  touch works on your board.
+
+Other ideas the club could take on: dice and game simulations, sensor
+dashboards, touch-based games, clocks and timers, and retro-style demos.
+
+## A note on the touchscreen
+
+This guide verifies the **display** only. The touchscreen is a separate
+XPT2046 controller on its own SPI bus (T_CLK 25, T_CS 33, T_DIN 32, T_OUT 39,
+T_IRQ 36) — it does **not** share the display's pins, and TFT_eSPI's built-in
+touch support assumes it does, so that support is not used.
+
+Touch also needs calibrating per board. `WiFiDetectiveDeluxe` includes a
+four-corner calibration routine that saves to flash and runs automatically the
+first time it boots.
 
 The important first milestone is always the same:
 

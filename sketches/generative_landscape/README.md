@@ -129,6 +129,10 @@ Screen is used in rotation 1 (landscape, 320×240) with `invertDisplay(true)`.
 - **TFT_eSPI** by Bodmer (tested with 2.5.43)
 - `esp_system.h` — part of the ESP32 core, provides `esp_random()`
 
+### Build size
+
+322 KB flash (24%), 23 KB RAM (7%).
+
 ---
 
 ## Troubleshooting
