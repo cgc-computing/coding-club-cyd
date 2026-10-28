@@ -83,7 +83,7 @@ backlight PWM, which does not exist on core 2.x.
 
 ## Build instructions
 
-Complete [the club's CYD setup guide](../docs/CYD-SETUP.md) first. This sketch
+Complete [the club's CYD setup guide](../../docs/CYD-SETUP.md) first. This sketch
 assumes TFT_eSPI is already configured for our boards.
 
 ### 1. TFT_eSPI configuration
@@ -304,4 +304,4 @@ draw anything, so scan timing and rendering stay independent of each other.
 
 ---
 
-MIT — see [LICENSE](../LICENSE). Copyright © 2026 CGC Computing Studies.
+MIT — see [LICENSE](../../LICENSE). Copyright © 2026 CGC Computing Studies.

@@ -481,9 +481,9 @@ Three sketches in this repository are ready to run:
 
 - **[generative_landscape](../sketches/generative_landscape/)** — a new
   procedural mountain scene on every button press. Display only.
-- **[CYDSolarSystem](../CYDSolarSystem/)** — an animated orrery. Display only,
+- **[CYDSolarSystem](../sketches/CYDSolarSystem/)** — an animated orrery. Display only,
   and a good introduction to flicker-free sprite rendering.
-- **[WiFiDetectiveDeluxe](../WiFiDetectiveDeluxe/)** — a Wi-Fi analyzer. This
+- **[WiFiDetectiveDeluxe](../sketches/WiFiDetectiveDeluxe/)** — a Wi-Fi analyzer. This
   is the one that uses the touchscreen, so start here if you want to verify
   touch works on your board.
 

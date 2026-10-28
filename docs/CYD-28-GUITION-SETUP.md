@@ -170,31 +170,25 @@ void loop() {
 
 ## Coding Club examples
 
-Suggested repository layout:
+Where things live in this repository:
 
 ```text
 coding-club-cyd/
 ├── README.md
 ├── docs/
-│   └── CYD-28-GUITION-SETUP.md
-├── configs/
-│   └── Setup_CGCC_CYD_28.h
-└── examples/
-    ├── CYD_Display_Test/
-    │   └── CYD_Display_Test.ino
-    ├── CYD_Touch_Test/
-    │   └── CYD_Touch_Test.ino
-    └── CYD_Paint/
-        └── CYD_Paint.ino
+│   └── CYD-28-GUITION-SETUP.md     this guide
+└── sketches/
+    └── CGCCPaint/
+        └── cgcc_paint.ino          the paint demo, with its own README
 ```
 
-Arduino requires the `.ino` filename to match its containing sketch folder. The `configs/` file is a **reference copy**; merely storing it in GitHub does not configure the installed TFT_eSPI library. Install/select it as described above.
+The display test and touch test sketches are the short listings earlier in this guide; paste each into a new Arduino sketch to run it. Arduino requires the `.ino` filename to match its containing sketch folder. The TFT_eSPI setup file must be installed into the library as described above; a copy stored in GitHub does not configure anything by itself.
 
 ### Suggested learning activities
 
 1. **Display test:** SPI graphics, RGB colors, screen coordinates, display rotation.
 2. **Touch test:** Separate SPI bus, raw sensor readings, coordinate mapping and calibration.
-3. **CYD Paint:** Event handling, drawing algorithms, UI buttons, brush size and colors.
+3. **CGCC Paint** ([sketches/CGCCPaint](../sketches/CGCCPaint/)): Event handling, drawing algorithms, UI buttons, brush size and colors.
 4. **Wi-Fi scanner (future):** SSIDs, RSSI and signal-strength visualization.
 5. **Dashboard (future):** Uptime, free memory, network state and simple sensor readings.
 

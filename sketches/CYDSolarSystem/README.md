@@ -10,7 +10,7 @@ Nothing to press, nothing to connect. Power the board and it runs.
 
 ## Running It
 
-1. Complete [the CYD setup guide](../docs/CYD-SETUP.md) first. This sketch needs
+1. Complete [the CYD setup guide](../../docs/CYD-SETUP.md) first. This sketch needs
    TFT_eSPI configured for our boards (driver `ILI9341_2`, backlight on GPIO 21).
 2. Open `CYDSolarSystem.ino` in Arduino IDE.
 3. Board: **ESP32 Dev Module**, Upload Speed: **115200**, Port: your
@@ -164,7 +164,7 @@ actually took.
 | Function | Pin |
 |---|---|
 | TFT backlight | GPIO 21 (driven HIGH) |
-| Display | via TFT_eSPI — see [setup guide](../docs/CYD-SETUP.md) |
+| Display | via TFT_eSPI — see [setup guide](../../docs/CYD-SETUP.md) |
 
 No touchscreen, no buttons, no Wi-Fi, no SD card.
 
@@ -187,7 +187,7 @@ startup.
 | Symptom | Cause |
 |---|---|
 | `SPRITE ALLOCATION FAILED` in red | Not enough free RAM — reduce `SPACE_W` / `SPACE_H` |
-| Blank or white screen | TFT_eSPI isn't configured — go back to the [setup guide](../docs/CYD-SETUP.md) |
+| Blank or white screen | TFT_eSPI isn't configured — go back to the [setup guide](../../docs/CYD-SETUP.md) |
 | Only the left portion draws | Wrong driver; must be `ILI9341_2` |
 | Colours look negative | `invertDisplay(true)` missing or applied twice |
 | Planets flicker | The sprite failed and something is drawing straight to the TFT |
@@ -214,4 +214,4 @@ startup.
 
 ---
 
-MIT — see [LICENSE](../LICENSE). Copyright © 2026 CGC Computing Studies.
+MIT — see [LICENSE](../../LICENSE). Copyright © 2026 CGC Computing Studies.
