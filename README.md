@@ -54,12 +54,13 @@ Don't skip the setup guide — every sketch in this repo assumes TFT_eSPI is alr
 | [CYDSolarSystem](sketches/CYDSolarSystem/) | An animated orrery. The Sun and all eight planets orbit in the right order at compressed speeds, with Saturn's rings, Jupiter's cloud bands, and a side panel that tours each planet's real diameter, distance, and year. | none |
 | [WiFiDetectiveDeluxe](sketches/WiFiDetectiveDeluxe/) | A handheld Wi-Fi analyzer: discovers nearby access points, charts channel congestion, and tracks signal strength over time. **Phase 1 of 6 — menu and touch navigation only so far.** | touchscreen, Wi-Fi |
 | [CGCCPaint](sketches/CGCCPaint/) | A small touchscreen paint program: six colors, adjustable brush, clear button. Runs in portrait. Touch calibration values are starting estimates — see its README. | touchscreen |
+| [FlipTimer](sketches/FlipTimer/) | A one-button stopwatch with a flip-clock display. Tap anywhere to start, stop, then reset — no touch calibration needed. | touchscreen, BOOT button |
 
 More sketches will be added as the club works through projects.
 
 ### Build sizes
 
-These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint has not been measured yet):
+These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint and FlipTimer have not been measured yet):
 
 | Sketch | Flash | RAM |
 |---|---:|---:|
@@ -91,8 +92,11 @@ coding-club-cyd/
 │   │   ├── DisplayManager.{h,cpp}
 │   │   ├── TouchManager.{h,cpp}
 │   │   └── UIComponents.{h,cpp}
-│   └── CGCCPaint/
-│       └── cgcc_paint.ino
+│   ├── CGCCPaint/
+│   │   └── cgcc_paint.ino
+│   └── FlipTimer/
+│       ├── FlipTimer.ino
+│       └── FlipDigits.h           The digit shapes, drawn from lines and arcs
 ├── LICENSE
 └── README.md
 ```
