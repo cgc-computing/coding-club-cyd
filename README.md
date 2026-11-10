@@ -55,7 +55,7 @@ Don't skip the setup guide — every sketch in this repo assumes TFT_eSPI is alr
 | [WiFiDetectiveDeluxe](sketches/WiFiDetectiveDeluxe/) | A handheld Wi-Fi analyzer: discovers nearby access points, charts channel congestion, and tracks signal strength over time. **Phase 1 of 6 — menu and touch navigation only so far.** | touchscreen, Wi-Fi |
 | [CGCCPaint](sketches/CGCCPaint/) | A small touchscreen paint program: six colors, adjustable brush, clear button. Runs in portrait. Touch calibration values are starting estimates — see its README. | touchscreen |
 | [FlipTimer](sketches/FlipTimer/) | A one-button stopwatch with a flip-clock display. Tap anywhere to start, stop, then reset — no touch calibration needed. | touchscreen, BOOT button |
-| [MovieTerminal](sketches/MovieTerminal/) | "Computer stuff" for the background of a movie: three panes of tiny, endlessly scrolling fake code, hex, and log data. | BOOT button |
+| [MovieTerminal](sketches/MovieTerminal/) | "Computer stuff" for the background of a movie: an animated network map beside panes of tiny, endlessly scrolling fake code, hex, and log data. | BOOT button |
 
 More sketches will be added as the club works through projects.
 

@@ -1,16 +1,24 @@
 # Movie Terminal
 
-"Computer stuff" for the background of a movie scene. Three panes of tiny text
-scroll forever:
+"Computer stuff" for the background of a movie scene. The screen is split into
+four panes — an animated network map and three panes of tiny text that scroll
+forever:
 
 | Pane | What it shows |
 |---|---|
-| Left | Made-up source code, with indentation, braces, and comments |
+| Top left | A network map: nodes join, drop out, and pass packets to each other |
+| Bottom left | Made-up source code, with indentation, braces, and comments |
 | Top right | A hex dump: address, eight bytes, and the same bytes as characters |
 | Bottom right | Log lines, columns of numbers, binary, coordinates, progress bars, and the occasional red warning |
 
-None of it means anything. It just has to look busy. Each pane scrolls at its
-own speed, and now and then pauses or bursts, the way real output does.
+None of it means anything. It just has to look busy. Each text pane scrolls at
+its own speed, and now and then pauses or bursts, the way real output does.
+
+On the network map, a new node flashes white with a spreading ring and links
+to its nearest neighbors. A node that drops out blinks red, then disappears
+along with its links; any node left stranded reconnects to its nearest
+neighbor. White specks are packets travelling along the links, and a node
+glows for a moment when one arrives.
 
 Press the **BOOT** button to change the color scheme: green / cyan / amber,
 all green, all amber, or ice blue.
@@ -58,9 +66,21 @@ and sends that to the screen. Scrolling up by one pixel is just starting the
 picture one pixel further down the text — so the text glides instead of
 jumping a whole line at a time.
 
+**The network map.** The network is three small lists: nodes, links (each
+joins two nodes), and packets (each rides along one link). `updateNetwork()`
+moves time forward — nodes finish joining or dropping, packets advance, and
+every second or so a random node joins or leaves. `drawNetwork()` then draws
+the whole map into an off-screen picture and sends it to the screen in one go,
+20 times a second, so you never see it half-drawn. The lines are drawn with
+Bresenham's algorithm, a classic way to draw a straight line using only whole
+numbers.
+
 ---
 
 ## Ideas To Try
+
+- Change `MAX_NODES`, `PACKET_SPEED`, or how often nodes join and drop.
+- Make busy nodes (lots of links) draw bigger.
 
 - Add your own words to `NAME_START`, `UNIT`, or `EVENT`.
 - Add a new kind of line to `generateData()`.

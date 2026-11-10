@@ -1,7 +1,12 @@
 // MovieTerminal -- "computer stuff" for the background of a movie scene.
 //
-// Three panes of tiny text scroll forever: made-up source code on the left,
-// a hex dump at the top right, and log lines and numbers at the bottom right.
+// The screen is split into four panes:
+//
+//   top left      a network map -- nodes join, drop out, and pass packets
+//   bottom left   made-up source code, scrolling forever
+//   top right     a hex dump, scrolling forever
+//   bottom right  log lines and numbers, scrolling forever
+//
 // None of it means anything. It just has to look busy.
 //
 // Press the BOOT button to change the color scheme.
@@ -33,6 +38,17 @@ constexpr int MAX_PANE_W = 160;
 
 enum Style : uint8_t { NORMAL, DIM, BRIGHT, ALERT, STYLE_COUNT };
 
+// The network map has its own short list of colors, and each node on it is
+// in one of four states.
+//
+// (These live up here, rather than beside the network code further down,
+// because Arduino needs to know about a type before the first function in
+// the sketch if any function takes that type as a parameter.)
+enum NetColor : uint8_t { NET_BLACK, NET_LINK, NET_NODE, NET_BRIGHT, NET_ALERT,
+                          NET_COLOR_COUNT };
+
+enum NodeState : uint8_t { EMPTY, JOINING, ONLINE, DROPPING };
+
 // -------------------------------------------------------------- colors ----
 
 struct RGB {
@@ -40,14 +56,15 @@ struct RGB {
 };
 
 struct Theme {
-  RGB code, hex, data;      // base color of each pane
+  RGB code, hex, data, net;     // base color of each pane
 };
 
 const Theme THEMES[] = {
-  {{60, 230, 110}, {70, 200, 235}, {240, 180, 60}},    // green / cyan / amber
-  {{60, 230, 110}, {60, 230, 110}, {60, 230, 110}},    // all green
-  {{240, 180, 60}, {240, 180, 60}, {240, 180, 60}},    // all amber
-  {{120, 190, 255}, {120, 190, 255}, {120, 190, 255}}, // ice blue
+  // code            hex              data             network
+  {{60, 230, 110},  {70, 200, 235},  {240, 180, 60},  {190, 140, 255}},  // mixed
+  {{60, 230, 110},  {60, 230, 110},  {60, 230, 110},  {60, 230, 110}},   // green
+  {{240, 180, 60},  {240, 180, 60},  {240, 180, 60},  {240, 180, 60}},   // amber
+  {{120, 190, 255}, {120, 190, 255}, {120, 190, 255}, {120, 190, 255}},  // ice blue
 };
 constexpr int THEME_COUNT = sizeof(THEMES) / sizeof(THEMES[0]);
 
@@ -80,7 +97,7 @@ Style generateData(char* out, size_t size);
 
 Pane panes[] = {
   //  x    y    w    h   speed  generator
-  {   2,   0, 156, 240,  26,   generateCode},
+  {   2, 121, 156, 119,  26,   generateCode},
   { 163,   0, 156, 118,  44,   generateHex},
   { 163, 121, 156, 119,  15,   generateData},
 };
@@ -288,6 +305,377 @@ Style generateData(char* out, size_t size) {
   }
 }
 
+// ------------------------------------------------------ the network map ----
+//
+// A pretend network. Nodes are dots, links are lines between them, and
+// packets are bright specks that travel along the links. At random moments a
+// new node joins (it flashes and links to its nearest neighbors) or an
+// existing node drops out (it blinks red, then vanishes with its links).
+
+constexpr int NET_X = 2;              // where the map is on screen
+constexpr int NET_Y = 0;
+constexpr int NET_W = 156;
+constexpr int NET_H = 118;
+
+constexpr int MAX_NODES   = 14;
+constexpr int MIN_NODES   = 4;
+constexpr int MAX_LINKS   = 32;
+constexpr int MAX_PACKETS = 10;
+
+constexpr uint32_t NET_FRAME_MS = 50;     // redraw the map 20 times a second
+constexpr uint32_t JOIN_MS      = 600;    // how long a joining node flashes
+constexpr uint32_t DROP_MS      = 800;    // how long a dropping node blinks
+constexpr uint32_t LIT_MS       = 180;    // how long a node glows after a packet
+constexpr float PACKET_SPEED    = 70;     // pixels per second
+constexpr int NODE_SPACING      = 22;     // nodes keep at least this far apart
+
+// The map is drawn into a small off-screen picture first, then sent to the
+// screen all at once, so you never see it half-drawn. Each pixel of that
+// picture is a NetColor number (defined near the top) rather than a full color.
+
+struct Node {
+  NodeState state;
+  int x, y;
+  uint8_t id;               // the two-digit label drawn beside it
+  uint32_t stateStart;      // when it started joining or dropping
+  uint32_t litUntil;        // glows until this time after receiving a packet
+};
+
+struct Link {
+  bool used;
+  uint8_t a, b;             // the two nodes it joins
+};
+
+struct Packet {
+  bool used;
+  uint8_t link;
+  bool forward;             // true: travelling a -> b.  false: b -> a
+  float progress;           // 0 at the start of the link, 1 at the end
+};
+
+Node nodes[MAX_NODES];
+Link links[MAX_LINKS];
+Packet packets[MAX_PACKETS];
+
+uint8_t netCanvas[NET_W * NET_H];
+uint16_t netColors[NET_COLOR_COUNT];
+uint32_t packetsDelivered = 0;
+
+// ---- the network: who is connected to whom ----
+
+bool nodeActive(int i) {
+  return nodes[i].state == JOINING || nodes[i].state == ONLINE;
+}
+
+int countNodes() {
+  int count = 0;
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (nodes[i].state != EMPTY) count++;
+  }
+  return count;
+}
+
+int countLinks() {
+  int count = 0;
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (links[i].used) count++;
+  }
+  return count;
+}
+
+bool linked(int a, int b) {
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (!links[i].used) continue;
+    if ((links[i].a == a && links[i].b == b) || (links[i].a == b && links[i].b == a)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+int linkCount(int node) {
+  int count = 0;
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (links[i].used && (links[i].a == node || links[i].b == node)) count++;
+  }
+  return count;
+}
+
+void addLink(int a, int b) {
+  if (a < 0 || b < 0 || a == b || linked(a, b)) return;
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (!links[i].used) {
+      links[i] = {true, (uint8_t)a, (uint8_t)b};
+      return;
+    }
+  }
+}
+
+// The closest active node to `from` that it is not already linked to,
+// or -1 if there isn't one.
+int nearestUnlinked(int from) {
+  int best = -1;
+  long bestDistance = 0;
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (i == from || !nodeActive(i) || linked(from, i)) continue;
+    long dx = nodes[i].x - nodes[from].x;
+    long dy = nodes[i].y - nodes[from].y;
+    long distance = dx * dx + dy * dy;
+    if (best < 0 || distance < bestDistance) {
+      best = i;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+// A new node joins the network. Returns its index, or -1 if there was no
+// free slot or no free space on the map.
+int addNode(uint32_t now) {
+  int slot = -1;
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (nodes[i].state == EMPTY) {
+      slot = i;
+      break;
+    }
+  }
+  if (slot < 0) return -1;
+
+  // Try a few random spots until one is clear of the other nodes.
+  for (int attempt = 0; attempt < 30; attempt++) {
+    int x = random(8, NET_W - 16);        // leave room for the label
+    int y = random(14, NET_H - 8);        // and for the header line
+    bool clear = true;
+    for (int i = 0; i < MAX_NODES && clear; i++) {
+      if (nodes[i].state == EMPTY) continue;
+      long dx = nodes[i].x - x;
+      long dy = nodes[i].y - y;
+      if (dx * dx + dy * dy < NODE_SPACING * NODE_SPACING) clear = false;
+    }
+    if (!clear) continue;
+
+    nodes[slot] = {JOINING, x, y, (uint8_t)random(256), now, 0};
+    addLink(slot, nearestUnlinked(slot));
+    if (random(2)) addLink(slot, nearestUnlinked(slot));   // sometimes two links
+    return slot;
+  }
+  return -1;
+}
+
+// A node has finished dropping out: remove it, its links, and any packets
+// that were on those links. Anyone left with no links reconnects.
+void removeNode(int node) {
+  nodes[node].state = EMPTY;
+
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (links[i].used && (links[i].a == node || links[i].b == node)) {
+      links[i].used = false;
+      for (int p = 0; p < MAX_PACKETS; p++) {
+        if (packets[p].used && packets[p].link == i) packets[p].used = false;
+      }
+    }
+  }
+
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (nodeActive(i) && linkCount(i) == 0) {
+      addLink(i, nearestUnlinked(i));     // the network "re-routes"
+    }
+  }
+}
+
+// Send a packet from `node` along one of its links, chosen at random.
+void sendPacket(int node) {
+  int chosen = -1, seen = 0;
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (links[i].used && (links[i].a == node || links[i].b == node)) {
+      seen++;
+      if (random(seen) == 0) chosen = i;  // each link equally likely
+    }
+  }
+  if (chosen < 0) return;
+
+  for (int p = 0; p < MAX_PACKETS; p++) {
+    if (!packets[p].used) {
+      packets[p] = {true, (uint8_t)chosen, links[chosen].a == node, 0};
+      return;
+    }
+  }
+}
+
+// Move the whole network forward in time by `seconds`.
+void updateNetwork(uint32_t now, float seconds) {
+  static uint32_t nextEvent = 0;
+  static uint32_t nextTraffic = 0;
+
+  // Nodes finish joining or dropping.
+  for (int i = 0; i < MAX_NODES; i++) {
+    if (nodes[i].state == JOINING && now - nodes[i].stateStart >= JOIN_MS) {
+      nodes[i].state = ONLINE;
+    } else if (nodes[i].state == DROPPING && now - nodes[i].stateStart >= DROP_MS) {
+      removeNode(i);
+    }
+  }
+
+  // Every so often, a node joins or drops.
+  if (now >= nextEvent) {
+    nextEvent = now + random(500, 1800);
+    int count = countNodes();
+    bool join = (count <= MIN_NODES) || (count < MAX_NODES && random(100) < 55);
+    if (join) {
+      addNode(now);
+    } else {
+      int victim = random(MAX_NODES);
+      if (nodes[victim].state == ONLINE) {
+        nodes[victim].state = DROPPING;
+        nodes[victim].stateStart = now;
+      }
+    }
+  }
+
+  // A steady trickle of new packets.
+  if (now >= nextTraffic) {
+    nextTraffic = now + random(120, 500);
+    int sender = random(MAX_NODES);
+    if (nodes[sender].state == ONLINE) sendPacket(sender);
+  }
+
+  // Packets travel along their links.
+  for (int p = 0; p < MAX_PACKETS; p++) {
+    if (!packets[p].used) continue;
+    const Link& link = links[packets[p].link];
+    float dx = nodes[link.b].x - nodes[link.a].x;
+    float dy = nodes[link.b].y - nodes[link.a].y;
+    float length = sqrtf(dx * dx + dy * dy);
+    if (length < 1) length = 1;
+
+    packets[p].progress += PACKET_SPEED * seconds / length;
+    if (packets[p].progress >= 1) {
+      int arrivedAt = packets[p].forward ? link.b : link.a;
+      packets[p].used = false;
+      packetsDelivered++;
+      nodes[arrivedAt].litUntil = now + LIT_MS;
+      if (nodes[arrivedAt].state == ONLINE && random(100) < 55) {
+        sendPacket(arrivedAt);            // pass it on
+      }
+    }
+  }
+}
+
+// ---- the network: drawing ----
+
+void plot(int x, int y, NetColor color) {
+  if (x < 0 || y < 0 || x >= NET_W || y >= NET_H) return;
+  netCanvas[y * NET_W + x] = color;
+}
+
+// A straight line, one pixel at a time (Bresenham's algorithm).
+void canvasLine(int x0, int y0, int x1, int y1, NetColor color) {
+  int dx = abs(x1 - x0), dy = -abs(y1 - y0);
+  int stepX = (x0 < x1) ? 1 : -1;
+  int stepY = (y0 < y1) ? 1 : -1;
+  int error = dx + dy;
+  while (true) {
+    plot(x0, y0, color);
+    if (x0 == x1 && y0 == y1) break;
+    int twice = 2 * error;
+    if (twice >= dy) { error += dy; x0 += stepX; }
+    if (twice <= dx) { error += dx; y0 += stepY; }
+  }
+}
+
+// A circle. Filled if `inner` is 0; otherwise a ring from `inner` to `radius`.
+void canvasCircle(int cx, int cy, int radius, int inner, NetColor color) {
+  for (int y = -radius; y <= radius; y++) {
+    for (int x = -radius; x <= radius; x++) {
+      int distance = x * x + y * y;
+      if (distance <= radius * radius && distance >= inner * inner) {
+        plot(cx + x, cy + y, color);
+      }
+    }
+  }
+}
+
+void canvasText(int x, int y, const char* text, NetColor color) {
+  for (; *text; text++, x += CELL_W) {
+    for (int row = 0; row < GLYPH_H; row++) {
+      int dots = glyphRow(*text, row);
+      if (dots & 0b100) plot(x, y + row, color);
+      if (dots & 0b010) plot(x + 1, y + row, color);
+      if (dots & 0b001) plot(x + 2, y + row, color);
+    }
+  }
+}
+
+void drawNetwork(uint32_t now) {
+  memset(netCanvas, NET_BLACK, sizeof(netCanvas));
+  bool blink = (now / 100) % 2;
+
+  // Links first, so nodes are drawn on top of them.
+  for (int i = 0; i < MAX_LINKS; i++) {
+    if (!links[i].used) continue;
+    const Node& a = nodes[links[i].a];
+    const Node& b = nodes[links[i].b];
+    NetColor color = NET_LINK;
+    if (a.state == DROPPING || b.state == DROPPING) {
+      color = blink ? NET_ALERT : NET_BLACK;
+    } else if (a.state == JOINING || b.state == JOINING) {
+      color = NET_BRIGHT;
+    }
+    canvasLine(a.x, a.y, b.x, b.y, color);
+  }
+
+  for (int p = 0; p < MAX_PACKETS; p++) {
+    if (!packets[p].used) continue;
+    const Link& link = links[packets[p].link];
+    const Node& from = packets[p].forward ? nodes[link.a] : nodes[link.b];
+    const Node& to   = packets[p].forward ? nodes[link.b] : nodes[link.a];
+    int x = from.x + (int)((to.x - from.x) * packets[p].progress);
+    int y = from.y + (int)((to.y - from.y) * packets[p].progress);
+    canvasCircle(x, y, 1, 0, NET_BRIGHT);
+  }
+
+  for (int i = 0; i < MAX_NODES; i++) {
+    const Node& node = nodes[i];
+    if (node.state == EMPTY) continue;
+
+    char label[4];
+    snprintf(label, sizeof(label), "%02X", node.id);
+    NetColor labelColor = NET_LINK;
+
+    if (node.state == JOINING) {
+      // A ring that spreads outward as the node comes online.
+      int ring = 3 + (int)((now - node.stateStart) * 6 / JOIN_MS);
+      canvasCircle(node.x, node.y, ring, ring - 1, NET_BRIGHT);
+      canvasCircle(node.x, node.y, 2, 0, NET_BRIGHT);
+      labelColor = NET_BRIGHT;
+    } else if (node.state == DROPPING) {
+      if (blink) canvasCircle(node.x, node.y, 3, 0, NET_ALERT);
+      labelColor = NET_ALERT;
+    } else if (now < node.litUntil) {
+      canvasCircle(node.x, node.y, 3, 0, NET_BRIGHT);   // just got a packet
+    } else {
+      canvasCircle(node.x, node.y, 2, 0, NET_NODE);
+    }
+    canvasText(node.x + 5, node.y - 2, label, labelColor);
+  }
+
+  char header[40];
+  snprintf(header, sizeof(header), "NODES %02d  LINKS %02d  PKT %05lu",
+           countNodes(), countLinks(), (unsigned long)(packetsDelivered % 100000));
+  canvasText(1, 1, header, NET_NODE);
+
+  // Turn the color numbers into real colors and send the picture.
+  for (int stripY = 0; stripY < NET_H; stripY += STRIP_H) {
+    int stripH = NET_H - stripY;
+    if (stripH > STRIP_H) stripH = STRIP_H;
+    const uint8_t* in = &netCanvas[stripY * NET_W];
+    for (int i = 0; i < stripH * NET_W; i++) {
+      stripBuffer[i] = netColors[in[i]];
+    }
+    tft.pushImage(NET_X, NET_Y + stripY, NET_W, stripH, stripBuffer);
+  }
+}
+
 // ------------------------------------------------------- pane plumbing ----
 
 // Put a freshly generated line into row `row` of the pane's text grid.
@@ -394,10 +782,19 @@ void applyTheme() {
   setPaneColor(panes[1], theme.hex);
   setPaneColor(panes[2], theme.data);
 
-  // Thin divider lines between the panes.
+  netColors[NET_BLACK]  = TFT_BLACK;
+  netColors[NET_LINK]   = tft.color565(theme.net.r * 45 / 100, theme.net.g * 45 / 100,
+                                       theme.net.b * 45 / 100);
+  netColors[NET_NODE]   = tft.color565(theme.net.r, theme.net.g, theme.net.b);
+  netColors[NET_BRIGHT] = tft.color565(255, 255, 255);
+  netColors[NET_ALERT]  = tft.color565(255, 70, 50);
+
+  // Thin divider lines between the four panes.
   tft.fillScreen(TFT_BLACK);
   tft.fillRect(160, 0, 1, 240, panes[0].colors[DIM]);
-  tft.fillRect(161, 119, 159, 1, panes[1].colors[DIM]);
+  tft.fillRect(0, 119, 320, 1, panes[0].colors[DIM]);
+
+  drawNetwork(millis());
 
   for (int i = 0; i < PANE_COUNT; i++) {
     drawPane(panes[i]);
@@ -448,12 +845,19 @@ void setup() {
     }
   }
 
+  // Start the network with a handful of nodes already online.
+  for (int i = 0; i < 7; i++) {
+    int node = addNode(0);
+    if (node >= 0) nodes[node].state = ONLINE;
+  }
+
   applyTheme();
   Serial.println("MovieTerminal ready");
 }
 
 void loop() {
   static uint32_t lastFrame = millis();
+  static uint32_t lastNetworkDraw = 0;
 
   uint32_t now = millis();
   float seconds = (now - lastFrame) / 1000.0f;
@@ -467,5 +871,11 @@ void loop() {
 
   for (int i = 0; i < PANE_COUNT; i++) {
     updatePane(panes[i], now, seconds);
+  }
+
+  updateNetwork(now, seconds);
+  if (now - lastNetworkDraw >= NET_FRAME_MS) {
+    lastNetworkDraw = now;
+    drawNetwork(now);
   }
 }

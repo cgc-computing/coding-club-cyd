@@ -12,7 +12,7 @@ Every sketch assumes TFT_eSPI is already configured for your board.
 | [CYDSolarSystem](CYDSolarSystem/) | An animated orrery: the Sun and all eight planets in orbit, with a side panel of facts about each planet. | none | none |
 | [CGCCPaint](CGCCPaint/) | A small touchscreen paint program with six colors, an adjustable brush, and a clear button. Runs in portrait. | touchscreen | XPT2046_Touchscreen |
 | [FlipTimer](FlipTimer/) | A one-button stopwatch with a flip-clock display. Tap anywhere to start, stop, then reset. | touchscreen, BOOT button | XPT2046_Touchscreen |
-| [MovieTerminal](MovieTerminal/) | "Computer stuff" for the background of a movie: three panes of tiny, endlessly scrolling fake code, hex, and log data. BOOT changes the colors. | BOOT button | none |
+| [MovieTerminal](MovieTerminal/) | "Computer stuff" for the background of a movie: an animated network map beside panes of tiny, endlessly scrolling fake code, hex, and log data. BOOT changes the colors. | BOOT button | none |
 | [WiFiDetectiveDeluxe](WiFiDetectiveDeluxe/) | A handheld Wi-Fi analyzer. **Phase 1 of 6 — menu and touch navigation only so far.** | touchscreen, Wi-Fi | XPT2046_Touchscreen |
 
 ## Where to start
