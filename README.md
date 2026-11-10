@@ -55,12 +55,13 @@ Don't skip the setup guide — every sketch in this repo assumes TFT_eSPI is alr
 | [WiFiDetectiveDeluxe](sketches/WiFiDetectiveDeluxe/) | A handheld Wi-Fi analyzer: discovers nearby access points, charts channel congestion, and tracks signal strength over time. **Phase 1 of 6 — menu and touch navigation only so far.** | touchscreen, Wi-Fi |
 | [CGCCPaint](sketches/CGCCPaint/) | A small touchscreen paint program: six colors, adjustable brush, clear button. Runs in portrait. Touch calibration values are starting estimates — see its README. | touchscreen |
 | [FlipTimer](sketches/FlipTimer/) | A one-button stopwatch with a flip-clock display. Tap anywhere to start, stop, then reset — no touch calibration needed. | touchscreen, BOOT button |
+| [MovieTerminal](sketches/MovieTerminal/) | "Computer stuff" for the background of a movie: three panes of tiny, endlessly scrolling fake code, hex, and log data. | BOOT button |
 
 More sketches will be added as the club works through projects.
 
 ### Build sizes
 
-These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint and FlipTimer have not been measured yet):
+These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint, FlipTimer, and MovieTerminal have not been measured yet):
 
 | Sketch | Flash | RAM |
 |---|---:|---:|
@@ -94,9 +95,12 @@ coding-club-cyd/
 │   │   └── UIComponents.{h,cpp}
 │   ├── CGCCPaint/
 │   │   └── cgcc_paint.ino
-│   └── FlipTimer/
-│       ├── FlipTimer.ino
-│       └── FlipDigits.h           The digit shapes, drawn from lines and arcs
+│   ├── FlipTimer/
+│   │   ├── FlipTimer.ino
+│   │   └── FlipDigits.h           The digit shapes, drawn from lines and arcs
+│   └── MovieTerminal/
+│       ├── MovieTerminal.ino
+│       └── TinyFont.h             A 3x5-pixel font
 ├── LICENSE
 └── README.md
 ```
