@@ -56,12 +56,13 @@ Don't skip the setup guide — every sketch in this repo assumes TFT_eSPI is alr
 | [CGCCPaint](sketches/CGCCPaint/) | A small touchscreen paint program: six colors, adjustable brush, clear button. Runs in portrait. Touch calibration values are starting estimates — see its README. | touchscreen |
 | [FlipTimer](sketches/FlipTimer/) | A one-button stopwatch with a flip-clock display. Tap anywhere to start, stop, then reset — no touch calibration needed. | touchscreen, BOOT button |
 | [MovieTerminal](sketches/MovieTerminal/) | "Computer stuff" for the background of a movie: an animated network map beside panes of tiny, endlessly scrolling fake code, hex, and log data. | BOOT button |
+| [FiveDice](sketches/FiveDice/) | A solo dice game in the Yacht family: roll five dice up to three times, hold the ones you want, and fill a 13-row scorecard. Saves your best score. | touchscreen, BOOT button |
 
 More sketches will be added as the club works through projects.
 
 ### Build sizes
 
-These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint, FlipTimer, and MovieTerminal have not been measured yet):
+These compile against ESP32 core 3.3.12 and TFT_eSPI 2.5.43 (CGCCPaint, FlipTimer, MovieTerminal, and FiveDice have not been measured yet):
 
 | Sketch | Flash | RAM |
 |---|---:|---:|
@@ -98,9 +99,11 @@ coding-club-cyd/
 │   ├── FlipTimer/
 │   │   ├── FlipTimer.ino
 │   │   └── FlipDigits.h           The digit shapes, drawn from lines and arcs
-│   └── MovieTerminal/
-│       ├── MovieTerminal.ino
-│       └── TinyFont.h             A 3x5-pixel font
+│   ├── MovieTerminal/
+│   │   ├── MovieTerminal.ino
+│   │   └── TinyFont.h             A 3x5-pixel font
+│   └── FiveDice/
+│       └── FiveDice.ino
 ├── LICENSE
 └── README.md
 ```
